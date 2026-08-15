@@ -25,12 +25,24 @@ async def base():
 
 @app.post('/generate-email')
 async def genEmail(data:EmailRequest):
+    prompt = f"""
+    Write an email based on the following requirements:
+
+    Title: {data.title}
+    Purpose: {data.purpose}
+    Tone: {data.tone}
+    Recipient: {data.recipient}
+    Word limit: {data.word_limit}
+
+    Return only the email.
+    """
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=prompt
+    )
     return {
-        "title": data.title,
-        "purpose": data.purpose,
-        "tone": data.tone,
-        "recipient": data.recipient,
-        "word_limit": data.word_limit
+        "success": True,
+        "email": response.text
     }
 
 @app.get('/test')
