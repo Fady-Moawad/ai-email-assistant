@@ -1,0 +1,14 @@
+50 words ≠ 50 tokens 
+بيختلف من لغة لي لغة tokenization عشان  
+
+two types of tokens
+Input Tokens => insert into model
+Output Tokens => out from model
+
+Count tokens
+      ↓
+Is it too large?
+   ↙       ↘
+ YES       NO
+  ↓         ↓
+Reject    Gemini
