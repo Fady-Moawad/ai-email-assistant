@@ -19,6 +19,20 @@ class EmailRequest(BaseModel):
     recipient: str
     word_limit: int = Field(default=50, ge=20, le=100)
 
+class EmailResponse(BaseModel):
+    subject: str
+    greeting: str
+    body: str
+    closing: str
+
+class AnalyzeEmailRequest(BaseModel):
+    email: str = Field(min_length=10)
+
+class AnalyzeEmailResponse(BaseModel):
+    summary: str
+    key_information: list[str]
+    action_items: list[str]
+
 @app.get('/')
 async def base():
     return {"message": "AI Email Assistant API"}
@@ -51,12 +65,19 @@ Do not add any other fields.
 
         response = client.models.generate_content(
             model="gemini-3.6-flash",
-            contents=prompt
+            contents=prompt,
+            config={
+                'response_mime_type':'application/json',
+                'response_schema':EmailResponse
+                }
         )
 
         return {
             "success": True,
-            "email": response.text
+            # return stractured data insted of text
+            "email": response.parsed
+            # return text of string until if you try to ask from gemini to return stractured data
+            # "email": response.parsed
         }
 
     except Exception:
@@ -64,7 +85,39 @@ Do not add any other fields.
             status_code=500,
             detail="Failed to generate email")
 
-            
+@app.post('/analyze-email')          
+async def analyze_email(data:AnalyzeEmailRequest):
+    try:
+        prompt = f"""
+Analyze the following email:
+
+{data.email}
+
+Extract the following information:
+
+- A short summary
+- Key information
+- Action items
+
+Return the result using the required structured format.
+"""
+        response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema":AnalyzeEmailResponse
+        }
+    )
+        return {
+            "success": True,
+            "analysis": response.parsed
+        }
+        
+    except Exception:
+        raise HTTPException ( 
+        status_code=500,
+        detail="Failed to generate email")
         
 @app.get('/test')
 async def test():
