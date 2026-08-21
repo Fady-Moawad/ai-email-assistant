@@ -10,7 +10,7 @@ The project demonstrates how to integrate an LLM into a Python backend applicati
 
 ```bash
 pip install -r requirements.txt
-
+```
 ---
 ## 🚀 Features
 
