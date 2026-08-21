@@ -2,10 +2,13 @@ from fastapi import FastAPI,HTTPException
 from pydantic import BaseModel , Field
 from google import genai
 from dotenv import load_dotenv
+from typing import Literal
 import os
 
 load_dotenv()
 app = FastAPI()
+
+MAXIMUM_TOKEN = int(os.getenv('MAXIMUM_TOKEN'))
 
 client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
@@ -32,6 +35,8 @@ class AnalyzeEmailResponse(BaseModel):
     summary: str
     key_information: list[str]
     action_items: list[str]
+
+tone: Literal["formal", "friendly", "professional"] = "professional"
 
 @app.get('/')
 async def base():
@@ -64,7 +69,7 @@ Do not add any other fields.
 """
 
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model=os.getenv("MODEL"),
             contents=prompt,
             config={
                 'response_mime_type':'application/json',
@@ -101,8 +106,19 @@ Extract the following information:
 
 Return the result using the required structured format.
 """
+        
+        count_token = client.models.count_tokens(
+            model=os.getenv("MODEL"),
+                contents=prompt
+                )
+        if count_token.total_tokens > os.getenv('MAXIMUM_TOKEN'):
+            raise HTTPException(  
+                status_code=413,
+                detail="Email is too long to analyze")
+                    
+        
         response = client.models.generate_content(
-        model="gemini-3.6-flash",
+        model=os.getenv("MODEL"),
         contents=prompt,
         config={
             "response_mime_type": "application/json",
@@ -111,7 +127,7 @@ Return the result using the required structured format.
     )
         return {
             "success": True,
-            "analysis": response.parsed
+            "analysis":response.parsed
         }
         
     except Exception:
@@ -119,12 +135,9 @@ Return the result using the required structured format.
         status_code=500,
         detail="Failed to generate email")
         
-@app.get('/test')
-async def test():
-    response = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents="Write a short professional email asking for vacation."
-    )
+@app.get("/health")
+async def health():
     return {
-        "response": response.text
+        "status": "ok",
+        "service": "AI Email Assistant"
     }
